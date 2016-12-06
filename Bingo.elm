@@ -151,6 +151,26 @@ viewSortButton =
         ]
 
 
+totalPoints : List Entry -> Int
+totalPoints entries =
+    entries
+        |> List.filter .marked
+        |> List.foldl (\entry acc -> acc + entry.points) 0
+
+
+viewTotalPoints : List Entry -> Html.Html Msg
+viewTotalPoints entries =
+    Html.div
+        [ Html.Attributes.class "score" ]
+        [ Html.span
+            [ Html.Attributes.class "label" ]
+            [ Html.text "Score" ]
+        , Html.span
+            [ Html.Attributes.class "value" ]
+            [ Html.text (entries |> totalPoints |> toString) ]
+        ]
+
+
 view : Model -> Html.Html Msg
 view model =
     Html.div
@@ -158,6 +178,7 @@ view model =
         [ viewHeader "BUZZWORD BINGO"
         , viewPlayer model.name model.gameNumber
         , viewEntryList model.entries
+        , viewTotalPoints model.entries
         , viewNewGameButton
         , viewSortButton
         , viewFooter
