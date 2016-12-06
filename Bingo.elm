@@ -54,6 +54,7 @@ initialEntries =
 
 type Msg
     = NewGame
+    | Mark Int
 
 
 update : Msg -> Model -> Model
@@ -61,6 +62,17 @@ update msg model =
     case msg of
         NewGame ->
             { model | gameNumber = model.gameNumber + 1 }
+
+        Mark entryId ->
+            let
+                switchSpokenStatus : Entry -> Entry
+                switchSpokenStatus entry =
+                    if entryId == entry.id then
+                        { entry | marked = not entry.marked }
+                    else
+                        entry
+            in
+                { model | entries = List.map switchSpokenStatus model.entries }
 
 
 
@@ -96,15 +108,18 @@ viewFooter =
         ]
 
 
-viewEntry : Entry -> Html.Html a
+viewEntry : Entry -> Html.Html Msg
 viewEntry entry =
-    Html.li []
+    Html.li
+        [ Html.Events.onClick (Mark entry.id)
+        , Html.Attributes.classList [ ( "marked", entry.marked ) ]
+        ]
         [ Html.span [ Html.Attributes.class "phrase" ] [ Html.text entry.phrase ]
         , Html.span [ Html.Attributes.class "points" ] [ Html.text (toString entry.points) ]
         ]
 
 
-viewEntryList : List Entry -> Html.Html a
+viewEntryList : List Entry -> Html.Html Msg
 viewEntryList entries =
     Html.ul [] (List.map viewEntry entries)
 
