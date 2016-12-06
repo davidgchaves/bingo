@@ -2,6 +2,7 @@ module Bingo exposing (..)
 
 import Html
 import Html.Attributes
+import Html.Events
 
 
 -- MODEL
@@ -45,6 +46,21 @@ initialEntries =
     , Entry 3 "In the Cloud" 300 False
     , Entry 4 "Rock-Star Ninja" 400 False
     ]
+
+
+
+-- UPDATE
+
+
+type Msg
+    = NewGame
+
+
+update : Msg -> Model -> Model
+update msg model =
+    case msg of
+        NewGame ->
+            { model | gameNumber = model.gameNumber + 1 }
 
 
 
@@ -93,17 +109,32 @@ viewEntryList entries =
     Html.ul [] (List.map viewEntry entries)
 
 
-view : Model -> Html.Html a
+viewNewGameButton : Html.Html Msg
+viewNewGameButton =
+    Html.div
+        [ Html.Attributes.class "button-group" ]
+        [ Html.button
+            [ Html.Events.onClick NewGame ]
+            [ Html.text "New Game" ]
+        ]
+
+
+view : Model -> Html.Html Msg
 view model =
     Html.div
         [ Html.Attributes.class "content" ]
         [ viewHeader "BUZZWORD BINGO"
         , viewPlayer model.name model.gameNumber
         , viewEntryList model.entries
+        , viewNewGameButton
         , viewFooter
         ]
 
 
-main : Html.Html a
+main : Program Never Model Msg
 main =
-    view initialModel
+    Html.beginnerProgram
+        { model = initialModel
+        , view = view
+        , update = update
+        }
