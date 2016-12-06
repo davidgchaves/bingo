@@ -42,9 +42,9 @@ initialModel =
 initialEntries : List Entry
 initialEntries =
     [ Entry 1 "Future-Proof" 100 False
-    , Entry 2 "Doing Agile" 200 False
-    , Entry 3 "In the Cloud" 300 False
     , Entry 4 "Rock-Star Ninja" 400 False
+    , Entry 3 "In the Cloud" 300 False
+    , Entry 2 "Doing Agile" 200 False
     ]
 
 
@@ -55,6 +55,7 @@ initialEntries =
 type Msg
     = NewGame
     | Mark Int
+    | SortByPoints
 
 
 update : Msg -> Model -> Model
@@ -76,6 +77,9 @@ update msg model =
                         entry
             in
                 { model | entries = List.map switchSpokenStatus model.entries }
+
+        SortByPoints ->
+            { model | entries = List.sortBy .points model.entries }
 
 
 
@@ -137,6 +141,16 @@ viewNewGameButton =
         ]
 
 
+viewSortButton : Html.Html Msg
+viewSortButton =
+    Html.div
+        [ Html.Attributes.class "button-group" ]
+        [ Html.button
+            [ Html.Events.onClick SortByPoints ]
+            [ Html.text "Sort" ]
+        ]
+
+
 view : Model -> Html.Html Msg
 view model =
     Html.div
@@ -145,6 +159,7 @@ view model =
         , viewPlayer model.name model.gameNumber
         , viewEntryList model.entries
         , viewNewGameButton
+        , viewSortButton
         , viewFooter
         ]
 
