@@ -3,6 +3,7 @@ module Bingo exposing (..)
 import Html
 import Html.Attributes
 import Html.Events
+import Random
 
 
 -- MODEL
@@ -56,18 +57,19 @@ type Msg
     = NewGame
     | Mark Int
     | SortByPoints
+    | RandomNumber Int
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         NewGame ->
-            ( { model
-                | gameNumber = model.gameNumber + 1
-                , entries = initialEntries
-              }
-            , Cmd.none
+            ( { model | entries = initialEntries }
+            , generateRandomNumber
             )
+
+        RandomNumber generatedNumber ->
+            ( { model | gameNumber = generatedNumber }, Cmd.none )
 
         Mark entryId ->
             let
@@ -86,6 +88,15 @@ update msg model =
             ( { model | entries = List.sortBy .points model.entries }
             , Cmd.none
             )
+
+
+
+-- COMMANDS
+
+
+generateRandomNumber : Cmd Msg
+generateRandomNumber =
+    Random.generate RandomNumber (Random.int 1 100)
 
 
 
@@ -194,7 +205,7 @@ view model =
 main : Program Never Model Msg
 main =
     Html.program
-        { init = ( initialModel, Cmd.none )
+        { init = ( initialModel, generateRandomNumber )
         , view = view
         , update = update
         , subscriptions = (\_ -> Sub.none)
