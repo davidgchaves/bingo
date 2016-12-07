@@ -58,14 +58,16 @@ type Msg
     | SortByPoints
 
 
-update : Msg -> Model -> Model
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         NewGame ->
-            { model
+            ( { model
                 | gameNumber = model.gameNumber + 1
                 , entries = initialEntries
-            }
+              }
+            , Cmd.none
+            )
 
         Mark entryId ->
             let
@@ -76,10 +78,14 @@ update msg model =
                     else
                         entry
             in
-                { model | entries = List.map switchSpokenStatus model.entries }
+                ( { model | entries = List.map switchSpokenStatus model.entries }
+                , Cmd.none
+                )
 
         SortByPoints ->
-            { model | entries = List.sortBy .points model.entries }
+            ( { model | entries = List.sortBy .points model.entries }
+            , Cmd.none
+            )
 
 
 
@@ -187,8 +193,9 @@ view model =
 
 main : Program Never Model Msg
 main =
-    Html.beginnerProgram
-        { model = initialModel
+    Html.program
+        { init = ( initialModel, Cmd.none )
         , view = view
         , update = update
+        , subscriptions = (\_ -> Sub.none)
         }
