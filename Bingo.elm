@@ -1,11 +1,12 @@
 module Bingo exposing (..)
 
 import Html exposing (Html)
-import Html.Attributes
-import Html.Events
+import Html.Attributes exposing (class, classList)
+import Html.Events exposing (onClick)
 import Random
 import Http
 import Json.Decode as Decode exposing (Decoder)
+import Json.Encode as Encode
 
 
 -- MODEL
@@ -16,6 +17,13 @@ type alias Entry =
     , phrase : String
     , points : Int
     , marked : Bool
+    }
+
+
+type alias Score =
+    { id : Int
+    , name : String
+    , value : Int
     }
 
 
@@ -55,6 +63,8 @@ type Msg
     | RandomNumber Int
     | NewEntries (Result Http.Error (List Entry))
     | CloseAlert
+    | ShareScore
+    | NewScore (Result Http.Error Score)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -63,8 +73,27 @@ update msg model =
         NewGame ->
             ( { model | gameNumber = model.gameNumber + 1 }, fetchInitialEntries )
 
+        ShareScore ->
+            ( model, postScore model )
+
         RandomNumber generatedNumber ->
             ( { model | gameNumber = generatedNumber }, Cmd.none )
+
+        NewScore (Ok score) ->
+            let
+                message =
+                    "Your score of "
+                        ++ (toString score.value)
+                        ++ " was successfully shared!"
+            in
+                ( { model | alertMessage = Just message }, Cmd.none )
+
+        NewScore (Err error) ->
+            let
+                message =
+                    "Error posting your score: " ++ (toString error)
+            in
+                ( { model | alertMessage = Just message }, Cmd.none )
 
         NewEntries (Ok randomEntries) ->
             ( { model | entries = randomEntries }, Cmd.none )
@@ -131,11 +160,50 @@ generateRandomNumber =
 
 fetchInitialEntries : Cmd Msg
 fetchInitialEntries =
-    Http.send NewEntries (Http.get "http://localhost:3000/random-entries" (Decode.list entryDecoder))
+    let
+        randomEntriesUrl =
+            "http://localhost:3000/random-entries"
+
+        request =
+            Http.get randomEntriesUrl entriesDecoder
+    in
+        Http.send NewEntries request
+
+
+postScore : Model -> Cmd Msg
+postScore model =
+    let
+        scoresUrl =
+            "http://localhost:3000/scores"
+
+        body =
+            model |> scoreEncoder |> Http.jsonBody
+
+        request =
+            Http.post scoresUrl body scoreDecoder
+    in
+        Http.send NewScore request
 
 
 
--- DECODERS
+-- DECODERS / ENCODERS
+
+
+scoreEncoder : Model -> Encode.Value
+scoreEncoder model =
+    Encode.object
+        [ ( "name", Encode.string model.name )
+        , ( "value", Encode.int (totalPoints model.entries) )
+        ]
+
+
+scoreDecoder : Decoder Score
+scoreDecoder =
+    Decode.map3
+        Score
+        (Decode.field "id" Decode.int)
+        (Decode.field "name" Decode.string)
+        (Decode.field "value" Decode.int)
 
 
 entryDecoder : Decoder Entry
@@ -146,6 +214,11 @@ entryDecoder =
         (Decode.field "phrase" Decode.string)
         (Decode.field "points" Decode.int)
         (Decode.succeed False)
+
+
+entriesDecoder : Decoder (List Entry)
+entriesDecoder =
+    Decode.list entryDecoder
 
 
 
@@ -161,7 +234,7 @@ viewPlayer : PlayerName -> GameNumber -> Html a
 viewPlayer name gameNumber =
     Html.h2
         [ Html.Attributes.id "info"
-        , Html.Attributes.class "classy"
+        , class "classy"
         ]
         [ Html.text (playerInfo name gameNumber) ]
 
@@ -184,11 +257,11 @@ viewFooter =
 viewEntry : Entry -> Html Msg
 viewEntry entry =
     Html.li
-        [ Html.Events.onClick (Mark entry.id)
-        , Html.Attributes.classList [ ( "marked", entry.marked ) ]
+        [ onClick (Mark entry.id)
+        , classList [ ( "marked", entry.marked ) ]
         ]
-        [ Html.span [ Html.Attributes.class "phrase" ] [ Html.text entry.phrase ]
-        , Html.span [ Html.Attributes.class "points" ] [ Html.text (toString entry.points) ]
+        [ Html.span [ class "phrase" ] [ Html.text entry.phrase ]
+        , Html.span [ class "points" ] [ Html.text (toString entry.points) ]
         ]
 
 
@@ -197,24 +270,20 @@ viewEntryList entries =
     Html.ul [] (List.map viewEntry entries)
 
 
-viewNewGameButton : Html Msg
-viewNewGameButton =
+viewGameButtons : Html Msg
+viewGameButtons =
     Html.div
-        [ Html.Attributes.class "button-group" ]
-        [ Html.button
-            [ Html.Events.onClick NewGame ]
-            [ Html.text "New Game" ]
+        [ class "button-group" ]
+        [ Html.button [ onClick NewGame ] [ Html.text "New Game" ]
+        , Html.button [ onClick ShareScore ] [ Html.text "Share Score" ]
         ]
 
 
 viewSortButton : Html Msg
 viewSortButton =
     Html.div
-        [ Html.Attributes.class "button-group" ]
-        [ Html.button
-            [ Html.Events.onClick SortByPoints ]
-            [ Html.text "Sort" ]
-        ]
+        [ class "button-group" ]
+        [ Html.button [ onClick SortByPoints ] [ Html.text "Sort" ] ]
 
 
 totalPoints : List Entry -> Int
@@ -227,13 +296,9 @@ totalPoints entries =
 viewTotalPoints : List Entry -> Html Msg
 viewTotalPoints entries =
     Html.div
-        [ Html.Attributes.class "score" ]
-        [ Html.span
-            [ Html.Attributes.class "label" ]
-            [ Html.text "Score" ]
-        , Html.span
-            [ Html.Attributes.class "value" ]
-            [ Html.text (entries |> totalPoints |> toString) ]
+        [ class "score" ]
+        [ Html.span [ class "label" ] [ Html.text "Score" ]
+        , Html.span [ class "value" ] [ Html.text (entries |> totalPoints |> toString) ]
         ]
 
 
@@ -241,10 +306,10 @@ viewAlertMessage : Maybe String -> Html Msg
 viewAlertMessage alertMessage =
     case alertMessage of
         Just message ->
-            Html.div [ Html.Attributes.class "alert" ]
+            Html.div [ class "alert" ]
                 [ Html.span
-                    [ Html.Attributes.class "close"
-                    , Html.Events.onClick CloseAlert
+                    [ class "close"
+                    , onClick CloseAlert
                     ]
                     [ Html.text "X" ]
                 , Html.text message
@@ -257,13 +322,13 @@ viewAlertMessage alertMessage =
 view : Model -> Html Msg
 view model =
     Html.div
-        [ Html.Attributes.class "content" ]
+        [ class "content" ]
         [ viewHeader "BUZZWORD BINGO"
         , viewAlertMessage model.alertMessage
         , viewPlayer model.name model.gameNumber
         , viewEntryList model.entries
         , viewTotalPoints model.entries
-        , viewNewGameButton
+        , viewGameButtons
         , viewSortButton
         , viewFooter
         ]
