@@ -239,10 +239,10 @@ viewPlayer name gameNumber =
         [ Html.text (playerInfo name gameNumber) ]
 
 
-viewHeader : String -> Html a
-viewHeader title =
+viewHeader : Html a
+viewHeader =
     Html.header []
-        [ Html.h1 [] [ Html.text title ] ]
+        [ Html.h1 [] [ Html.text "BUZZWORD BINGO" ] ]
 
 
 viewFooter : Html a
@@ -323,7 +323,7 @@ view : Model -> Html Msg
 view model =
     Html.div
         [ class "content" ]
-        [ viewHeader "BUZZWORD BINGO"
+        [ viewHeader
         , viewAlertMessage model.alertMessage
         , viewPlayer model.name model.gameNumber
         , viewEntryList model.entries
